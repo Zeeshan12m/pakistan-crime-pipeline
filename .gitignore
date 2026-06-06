@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+venv/
+.venv/
+
+# Data files (too large for git)
+data/raw/
+data/processed/
+
+# Airflow
+airflow/logs/
+airflow/config/airflow.cfg
+
+# Docker
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,19 @@
+# Scraping
+selenium==4.21.0
+beautifulsoup4==4.12.3
+requests==2.32.3
+webdriver-manager==4.0.1
+
+# NLP
+spacy==3.8.4
+nltk==3.8.1
+rapidfuzz==3.9.3
+
+# Data
+pandas==2.2.2
+numpy==2.2.6
+geopy==2.4.1
+
+# Pipeline / Utils
+python-dotenv==1.0.1
+schedule==1.2.2
