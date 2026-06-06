@@ -11,7 +11,6 @@ CHROMEDRIVER_PATH = r"C:\Users\zeeshan\.wdm\drivers\chromedriver\win64\148.0.777
 
 GEO_SECTIONS = [
     "https://www.geo.tv/category/pakistan",
-    "https://www.geo.tv/latest-news",
 ]
 
 def get_driver():
