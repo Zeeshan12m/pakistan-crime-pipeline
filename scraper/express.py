@@ -36,10 +36,15 @@ def scrape_express():
                 resp = requests.get(url, headers=HEADERS, timeout=15)
                 soup2 = BeautifulSoup(resp.text, "html.parser")
 
-                headline_tag = soup2.find("h1", class_="story-title") or soup2.find("h1")
+                headline_tag = (
+                    soup2.find("h1", class_="story-title") or
+                    soup2.find("h1", class_="top-meta") or
+                    soup2.find("h1")
+                )
+                # Use material-text for body — most specific Express Tribune class
                 body_tag = (
+                    soup2.find("div", class_="material-text") or
                     soup2.find("div", class_="story-content") or
-                    soup2.find("div", class_="tribune-story") or
                     soup2.find("article")
                 )
 
