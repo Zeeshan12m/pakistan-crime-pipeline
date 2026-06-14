@@ -41,7 +41,7 @@ def run_nlp_pipeline():
             continue
         result = extract_article(article)
         extracted.append(result)
-        print(f"[NLP] ✓ [{result['crime_type']}] [{result['city'] or 'unknown'}] "
+        print(f"[NLP] OK [{result['crime_type']}] [{result['city'] or 'unknown'}] "
               f"[severity: {result['severity']}] {result['headline'][:50]}")
     print(f"[NLP] Skipped {skipped} non-Pakistan articles")
 

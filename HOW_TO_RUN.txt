@@ -1,0 +1,196 @@
+================================================================
+PAKISTAN CRIME PIPELINE - HOW TO RUN
+================================================================
+
+BEFORE ANYTHING - CHECK THESE
+----------------------------------------------------------------
+- Docker Desktop is open and running (whale icon in taskbar)
+- KNIME is CLOSED (batch mode breaks if KNIME is open)
+- Internet is working
+- You are in the project folder:
+  D:\Pakistan_Crime_Pipeline_Project\pakistan-crime-pipeline
+
+================================================================
+STEP 1 - START DOCKER SERVICES
+================================================================
+
+Open PowerShell and run:
+
+    cd D:\Pakistan_Crime_Pipeline_Project\pakistan-crime-pipeline
+    docker compose up -d
+
+Wait 30 seconds, then verify:
+
+    docker compose ps
+
+You must see 6 containers all showing "Up":
+- postgres
+- airflow-init
+- airflow-webserver
+- airflow-scheduler
+- n8n
+- streamlit
+
+================================================================
+STEP 2 - START FLASK API
+================================================================
+
+Run:
+
+    Start-ScheduledTask -TaskName "PakistanCrimeFlask"
+
+Wait 5 seconds, then verify:
+
+    Invoke-RestMethod -Uri "http://localhost:8005/" -Method GET
+
+Must return: KNIME Flask API is running
+
+If it does not return that, run:
+
+    Stop-ScheduledTask -TaskName "PakistanCrimeFlask"
+    Start-ScheduledTask -TaskName "PakistanCrimeFlask"
+
+================================================================
+STEP 3 - VERIFY ALL SERVICES IN BROWSER
+================================================================
+
+Open these before presenting:
+
+- Airflow:   http://localhost:8080   (login: admin / admin)
+- n8n:       http://localhost:5678
+- Streamlit: http://localhost:8501
+
+================================================================
+STEP 4 - RUN PIPELINE MANUALLY (FOR DEMO)
+================================================================
+
+Run scrapers:
+
+    python -m scraper.run_all
+
+Wait for it to finish (2-5 minutes, Geo is slow because of Selenium)
+
+Run NLP:
+
+    python -m nlp.run_nlp
+
+Check output files exist:
+
+    dir data\processed
+
+You should see:
+- extracted_YYYYMMDD.csv
+- cleaned_latest.csv
+- aggregated_latest.csv
+
+================================================================
+STEP 5 - TRIGGER AIRFLOW DAG
+================================================================
+
+1. Open http://localhost:8080
+2. Login: admin / admin
+3. Find "daily_crime_pipeline"
+4. Toggle it ON (unpause it)
+5. Click the Play button (Trigger DAG)
+6. Click on the DAG name to watch tasks run
+7. All 4 tasks should turn green:
+   - run_scrapers
+   - run_nlp
+   - run_knime_etl
+   - trigger_n8n_alerts
+
+================================================================
+STEP 6 - CHECK EMAIL ALERTS
+================================================================
+
+Open Gmail and check for emails with subject:
+"Pakistan Crime Alert - [City Name]"
+
+Multiple emails arrive, one per city with high crime activity.
+
+================================================================
+STEP 7 - SHOW STREAMLIT DASHBOARD
+================================================================
+
+Open http://localhost:8501
+
+Show in this order for best visual impact:
+1. Crime Map      - shows markers on Pakistan map
+2. Category Breakdown - bar and pie charts
+3. Heatmap        - city vs crime type grid
+4. Trend Charts   - time series data
+
+Use sidebar filters to filter by city or crime type live.
+
+================================================================
+THINGS THAT CAN GO WRONG AND HOW TO FIX THEM
+================================================================
+
+PROBLEM: Docker containers not starting
+FIX: Open Docker Desktop manually, wait for whale icon,
+     then run docker compose up -d again
+
+PROBLEM: Flask returns 404
+FIX: Stop-ScheduledTask -TaskName "PakistanCrimeFlask"
+     Start-ScheduledTask -TaskName "PakistanCrimeFlask"
+     Wait 5 seconds and retry
+
+PROBLEM: Geo scraper takes too long
+FIX: This is normal. Selenium loads a real browser.
+     Warn your audience it takes 2-3 minutes.
+
+PROBLEM: KNIME fails in batch mode
+FIX: Open KNIME manually
+     Open the pakistan_crime_etl workflow
+     Press Shift+F7 to run all nodes
+     Show it running from the GUI instead
+
+PROBLEM: Airflow DAG task fails
+FIX: Click the failed task in Airflow
+     Click Logs to show the error
+     Explain what the task does
+     Partial failure still shows the architecture working
+
+PROBLEM: No internet in classroom
+FIX: This will break scrapers completely
+     Test classroom internet the day before
+     As backup, run the pipeline at home first
+     Show the existing output files and dashboard
+     The dashboard works offline with existing data
+
+================================================================
+PORTS REFERENCE
+================================================================
+
+Flask API:        http://localhost:8005
+Airflow:          http://localhost:8080
+n8n:              http://localhost:5678
+Streamlit:        http://localhost:8501
+Postgres:         localhost:5432
+
+================================================================
+KNIME PATHS
+================================================================
+
+KNIME exe:     D:\Knime 5.8.0\knime_5.8.3\knime.exe
+Workflow:      D:\Knime Data\pakistan_crime_etl
+Batch file:    C:\knime-airflow\run_crime_etl.bat
+Flask API:     C:\knime-airflow\knime_flask_api.py
+Flask log:     C:\knime-airflow\flask_service.log
+
+================================================================
+PROJECT FOLDER STRUCTURE
+================================================================
+
+pakistan-crime-pipeline/
+├── scraper/          - Dawn, Geo, Express Tribune scrapers
+├── nlp/              - Crime type, city, severity extraction
+├── knime/            - KNIME workflow documentation
+├── airflow/dags/     - Daily and weekly Airflow DAGs
+├── dashboard/        - Streamlit 4-view dashboard
+├── data/raw/         - Scraped JSON files
+├── data/processed/   - Cleaned and aggregated CSVs
+├── data/geo/         - Pakistan cities with coordinates
+└── docker-compose.yml - All services in one file
+
+================================================================

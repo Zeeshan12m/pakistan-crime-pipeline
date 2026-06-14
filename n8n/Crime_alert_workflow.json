@@ -1,0 +1,167 @@
+{
+  "name": "Crime_alert_workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "crime-alert",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "9077f8a1-8d0a-495a-8842-67970017f35d",
+      "name": "Webhook",
+      "webhookId": "d9737615-2af6-4992-828b-250b127a8e3c"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "057078f7-e9f6-4863-86df-615b23e692d1",
+              "leftValue": "={{ $json.spike_detected }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        624,
+        0
+      ],
+      "id": "ecfef916-6d5e-4743-8cac-828bea743d09",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "fromEmail": "zeeshanzahid118@gmail.com",
+        "toEmail": "zeeshanzahid118@gmail.com",
+        "subject": "=🚨 Pakistan Crime Alert - {{ $json.city }}",
+        "emailFormat": "text",
+        "text": "=Crime Spike Detected!\n\nCity: {{ $json.city }}\nCrime Type: {{ $json.crime_type }}\nIncidents: {{ $json.crime_count }}\nAvg Severity: {{ $json.avg_severity }}\n\n{{ $json.alert_message }}\n\n-- Pakistan Crime Pipeline",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        832,
+        -96
+      ],
+      "id": "6b90d6be-38e9-4b69-91e7-b736d067ae5f",
+      "name": "Send an Email",
+      "webhookId": "f78be343-c5c7-4634-b2f9-841a21675a21",
+      "credentials": {
+        "smtp": {
+          "id": "WELi73uyIJKHlzwt",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:8005/get-csv-data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "dd38d7be-7b26-4b99-8983-82409c98027a",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(item => item.json);\n\nconst spikes = [];\nrows.forEach(row => {\n  const count = parseInt(row.crime_count) || 0;\n  const severity = parseFloat(row.avg_severity) || 0;\n  if (count >= 2 || severity >= 7.0) {\n    spikes.push({\n      json: {\n        spike_detected: true,\n        city: row.city,\n        crime_type: row.crime_type,\n        crime_count: count,\n        avg_severity: severity,\n        alert_message: `ALERT: ${row.city} — ${count} ${row.crime_type} incidents, avg severity ${severity}`\n      }\n    });\n  }\n});\n\nif (spikes.length === 0) {\n  return [{ json: { spike_detected: false, message: \"No spikes detected\" } }];\n}\n\nreturn spikes;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "57528206-fe32-4cbc-a152-8e2ea1b48228",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "f6e68c72-c0e3-4e26-abeb-35a22de60d42",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "eeb5879cf2fbab66f59352b697071c444c338062f47473680bbd7b05e4702a78"
+  },
+  "id": "qx3FelalpVnjlnHa",
+  "tags": []
+}

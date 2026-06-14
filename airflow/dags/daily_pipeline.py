@@ -1,16 +1,14 @@
 from airflow.decorators import dag, task
 from datetime import datetime
 import requests
-import subprocess
-import sys
-import os
 
-PROJECT_ROOT = "/opt/airflow/project"
+FLASK_BASE = "http://host.docker.internal:8005"
+HEADERS = {"X-API-Key": "pakistan-crime-key"}
 
 @dag(
     dag_id="daily_crime_pipeline",
     start_date=datetime(2026, 1, 1),
-    schedule="0 6 * * *",  # Every day at 6AM
+    schedule="0 6 * * *",
     catchup=False,
     max_active_runs=1,
     tags=["crime", "scraper", "nlp", "daily"],
@@ -19,52 +17,36 @@ def daily_crime_pipeline():
 
     @task(task_id="run_scrapers")
     def run_scrapers():
-        result = subprocess.run(
-            [sys.executable, "-m", "scraper.run_all"],
-            cwd=PROJECT_ROOT,
-            capture_output=True,
-            text=True,
-            timeout=1800
-        )
-        if result.returncode != 0:
-            raise Exception(f"Scraper failed:\n{result.stderr}")
-        print(result.stdout)
+        resp = requests.post(f"{FLASK_BASE}/run-scrapers", headers=HEADERS, timeout=1800)
+        data = resp.json()
+        if data.get("status") != "success":
+            raise Exception(f"Scrapers failed: {data}")
+        print(data.get("stdout", ""))
         return {"status": "success"}
 
     @task(task_id="run_nlp")
     def run_nlp(scraper_result):
-        result = subprocess.run(
-            [sys.executable, "-m", "nlp.run_nlp"],
-            cwd=PROJECT_ROOT,
-            capture_output=True,
-            text=True,
-            timeout=600
-        )
-        if result.returncode != 0:
-            raise Exception(f"NLP failed:\n{result.stderr}")
-        print(result.stdout)
+        resp = requests.post(f"{FLASK_BASE}/run-nlp", headers=HEADERS, timeout=600)
+        data = resp.json()
+        if data.get("status") != "success":
+            raise Exception(f"NLP failed: {data}")
+        print(data.get("stdout", ""))
         return {"status": "success"}
 
     @task(task_id="run_knime_etl")
     def run_knime_etl(nlp_result):
-        flask_url = "http://host.docker.internal:8005/run-knime"
-        headers = {"X-API-Key": "pakistan-crime-key"}
-        response = requests.post(flask_url, headers=headers, timeout=7200)
-        response.raise_for_status()
-        return response.json()
+        resp = requests.post(f"{FLASK_BASE}/run-knime", headers=HEADERS, timeout=7200)
+        data = resp.json()
+        if data.get("status") != "success":
+            raise Exception(f"KNIME failed: {data}")
+        return {"status": "success"}
 
     @task(task_id="trigger_n8n_alerts")
     def trigger_n8n_alerts(knime_result):
         n8n_url = "http://host.docker.internal:5678/webhook/crime-alert"
-        payload = {
-            "message": "Daily crime pipeline completed",
-            "source": "airflow",
-            "knime_result": knime_result
-        }
-        response = requests.post(n8n_url, json=payload, timeout=300)
-        response.raise_for_status()
+        resp = requests.post(n8n_url, json={"source": "airflow"}, timeout=300)
         try:
-            return response.json()
+            return resp.json()
         except Exception:
             return {"status": "success"}
 
