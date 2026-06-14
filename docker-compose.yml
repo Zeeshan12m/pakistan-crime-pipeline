@@ -74,6 +74,16 @@ services:
       - "host.docker.internal:host-gateway"
     restart: always
 
+  streamlit:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.streamlit
+    ports:
+      - "8501:8501"
+    volumes:
+      - .:/app
+    restart: always
+
 volumes:
   postgres_data:
   n8n_data:
